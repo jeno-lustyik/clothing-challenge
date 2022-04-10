@@ -20,8 +20,12 @@ train = []
 test = []
 start_time = time.time()
 
-
 for epoch in range(epochs):
+
+    #save checkpoint models in every 10th epoch
+    if epoch % 10 == 0:
+        torch.save(model.state_dict(), f'checkpoint_{epoch}.pth')
+
     #set running_loss variables
     running_loss = 0
     running_loss_test = 0
@@ -35,8 +39,8 @@ for epoch in range(epochs):
 
         optimizer.zero_grad()
 
-        logits = model.forward(images)
-        pred = F.softmax(logits, dim=1)
+        pred = model.forward(images)
+        # pred = F.softmax(logits, dim=1)
         train_loss = criterion(pred, labels)
         train_loss.backward()
         optimizer.step()
@@ -48,22 +52,17 @@ for epoch in range(epochs):
         for i, (images, labels) in enumerate(iter(testloader)):
 
             images.resize_(images.size()[0], 784)
-            test_probs = model(images)
+            test_probs = model.forward(images)
             test_loss = criterion(test_probs, labels)
-            _, pred = torch.max(test_probs, 1)
-            incorrect_pred = ((pred == labels) == False)#.nonzero()
+            _, pred = test_probs.topk(1, dim=1)
+            incorrect_pred = ((pred == labels) == False).nonzero()
             running_loss_test += test_loss.item()
-            incorrect.append(images[incorrect_pred])
-
-
-    train.append((running_loss/64))
-    test.append((running_loss_test/64))
+            incorrect.append(images[incorrect_pred].numpy())
+    train.append((running_loss/len(trainloader)))
+    test.append((running_loss_test/len(testloader)))
 
 train_time = time.time() - start_time
 print(f'Training time: {train_time}')
-
-
-torch.save(model.state_dict(), 'checkpoint_50')
 
 plt.plot(train, label='train loss')
 plt.plot(test, label='test loss')
