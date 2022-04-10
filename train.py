@@ -26,10 +26,11 @@ for epoch in range(epochs):
     if epoch % 10 == 0:
         torch.save(model.state_dict(), f'checkpoint_{epoch}.pth')
 
-    #set running_loss variables
+    #set running variables
     running_loss = 0
     running_loss_test = 0
     incorrect = []
+    correct = 0
     print(f'Epoch: {epoch+1}/{epochs}')
 
     model.train()
@@ -54,10 +55,21 @@ for epoch in range(epochs):
             images.resize_(images.size()[0], 784)
             test_probs = model.forward(images)
             test_loss = criterion(test_probs, labels)
+
+            #Check incorrect:
             _, pred = test_probs.topk(1, dim=1)
             incorrect_pred = ((pred == labels) == False).nonzero()
             running_loss_test += test_loss.item()
             incorrect.append(images[incorrect_pred].numpy())
+
+            #Check correct for accuracy:
+            correct += (pred == labels).float().sum()
+
+    #Accuracy
+    accuracy = 100 * correct / len(trainset)
+    print(f'Accuracy = {accuracy}')
+
+    #Running loss
     train.append((running_loss/len(trainloader)))
     test.append((running_loss_test/len(testloader)))
 
