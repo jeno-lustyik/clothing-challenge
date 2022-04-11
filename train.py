@@ -15,7 +15,7 @@ trainset, trainloader, testset, testloader = data_loader()
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.003)
 
-epochs = 50
+epochs = 100
 train = []
 test = []
 start_time = time.time()
@@ -23,8 +23,8 @@ start_time = time.time()
 for epoch in range(epochs):
 
     #save checkpoint models in every 10th epoch
-    if epoch % 10 == 0:
-        torch.save(model.state_dict(), f'checkpoint_{epoch}.pth')
+    if (epoch+1) % 10 == 0:
+        torch.save(model.state_dict(), f'checkpoint_{epoch+1}.pth')
 
     #set running variables
     running_loss = 0
@@ -50,23 +50,24 @@ for epoch in range(epochs):
 
     model.eval()
     with torch.no_grad():
-        for i, (images, labels) in enumerate(iter(testloader)):
+        for i, (images_test, labels_test) in enumerate(iter(testloader)):
 
-            images.resize_(images.size()[0], 784)
-            test_probs = model.forward(images)
-            test_loss = criterion(test_probs, labels)
+            images_test.resize_(images_test.size()[0], 784)
+            test_probs = model.forward(images_test)
+            test_loss = criterion(test_probs, labels_test)
 
             #Check incorrect:
-            _, pred = test_probs.topk(1, dim=1)
-            incorrect_pred = ((pred == labels) == False).nonzero()
+            pred_test = torch.argmax(test_probs, dim=1)
+            incorrect_pred = ((pred_test == labels_test) == False).nonzero()
             running_loss_test += test_loss.item()
-            incorrect.append(images[incorrect_pred].numpy())
+            incorrect.append(images_test[incorrect_pred].numpy())
 
             #Check correct for accuracy:
-            correct += (pred == labels).float().sum()
+            correct += (pred_test == labels_test).float().sum()
 
     #Accuracy
-    accuracy = 100 * correct / len(trainset)
+    accuracy = 100 * correct / len(testset)
+    accuracy = torch.round(accuracy, decimals=2)
     print(f'Accuracy = {accuracy}')
 
     #Running loss
